@@ -42,15 +42,18 @@ function RoomCard({
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           {room.room_type === '2BR Suite' ? (
-            <BedDouble className="w-5 h-5 text-amber-500" />
+            <BedDouble className="hidden sm:inline w-5 h-5 text-amber-500" />
           ) : (
-            <BedSingle className="w-5 h-5 text-slate-400" />
+            <BedSingle className="hidden sm:inline w-5 h-5 text-slate-400" />
           )}
-          <span className="font-semibold text-slate-800">{room.name}</span>
+          <span className="font-semibold text-slate-800">
+            <span className="hidden sm:inline">Room </span>
+            <span>{room.name.replace('Room ', '')}</span>
+          </span>
         </div>
         <StatusBadge status={room.status} />
       </div>
-      <p className="text-xs text-slate-400 mb-3">{room.room_type} · ${room.base_rate}/night</p>
+      <p className="hidden sm:block text-xs text-slate-400 mb-3">{room.room_type} · ${room.base_rate}/night</p>
       {booking ? (
         <div className="bg-blue-50 rounded-lg px-3 py-2">
           <p className="text-xs font-medium text-blue-700 truncate">{booking.guest_name}</p>
@@ -67,6 +70,135 @@ function RoomCard({
         </div>
       )}
     </button>
+  );
+}
+
+function RoomDetailPanelContent({
+  selected,
+  activeBooking,
+  upcomingBooking,
+  roomBookings,
+  changingStatus,
+  onStatusChange,
+  onViewBooking,
+  onNewBooking,
+}: {
+  selected: Room;
+  activeBooking: Booking | null | undefined;
+  upcomingBooking: Booking | undefined;
+  roomBookings: Booking[];
+  changingStatus: boolean;
+  onStatusChange: (status: RoomStatus) => void;
+  onViewBooking: (booking: Booking) => void;
+  onNewBooking: (roomId: number) => void;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden md:rounded-none md:border-0 md:shadow-none">
+      {/* Header */}
+      <div className="px-5 py-4 bg-slate-800 text-white">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-lg">{selected.name}</h3>
+          <StatusBadge status={selected.status} />
+        </div>
+        <p className="text-slate-400 text-sm">{selected.room_type} · ${selected.base_rate}/night</p>
+      </div>
+
+      <div className="p-5 space-y-5">
+        {/* Status changer */}
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Change Status</p>
+          <div className="space-y-1.5">
+            {ALL_STATUSES.map(s => (
+              <button
+                key={s}
+                disabled={changingStatus}
+                onClick={() => onStatusChange(s)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all disabled:opacity-40 ${
+                  selected.status === s
+                    ? `${STATUS_COLORS[s].bg} ${STATUS_COLORS[s].text} font-medium`
+                    : 'hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[s].dot}`} />
+                {STATUS_LABELS[s]}
+                {selected.status === s && <span className="ml-auto text-xs">Current</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active booking */}
+        {activeBooking && (
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Active Booking</p>
+            <button
+              onClick={() => onViewBooking(activeBooking)}
+              className="w-full text-left bg-blue-50 rounded-xl p-3 hover:bg-blue-100 transition-colors group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-500" />
+                  <span className="font-medium text-blue-800 text-sm">{activeBooking.guest_name}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+              <p className="text-xs text-blue-500 mt-1 pl-6">
+                {formatDate(activeBooking.check_in, 'MMM d')} – {formatDate(activeBooking.check_out, 'MMM d')} · {activeBooking.source}
+              </p>
+            </button>
+          </div>
+        )}
+
+        {/* Upcoming */}
+        {upcomingBooking && !activeBooking && (
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Upcoming</p>
+            <button
+              onClick={() => onViewBooking(upcomingBooking)}
+              className="w-full text-left bg-amber-50 rounded-xl p-3 hover:bg-amber-100 transition-colors group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-amber-800 text-sm">{upcomingBooking.guest_name}</span>
+                <ChevronRight className="w-4 h-4 text-amber-400" />
+              </div>
+              <p className="text-xs text-amber-600 mt-0.5">
+                {formatDate(upcomingBooking.check_in, 'MMM d')} – {formatDate(upcomingBooking.check_out, 'MMM d')}
+              </p>
+            </button>
+          </div>
+        )}
+
+        {/* All bookings for this room */}
+        {roomBookings.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">All Bookings</p>
+            <div className="space-y-1.5 max-h-44 overflow-y-auto">
+              {roomBookings.map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => onViewBooking(b)}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <p className="text-sm text-slate-700 font-medium truncate">{b.guest_name}</p>
+                  <p className="text-xs text-slate-400">
+                    {formatDate(b.check_in, 'MMM d')} – {formatDate(b.check_out, 'MMM d')}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add booking CTA */}
+        <button
+          onClick={() => onNewBooking(selected.id)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          New Booking
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -116,11 +248,11 @@ export default function RoomsView({ rooms, bookings, onStatusChange, onNewBookin
   };
 
   return (
-    <div className="flex gap-6 h-full">
+    <div className="relative flex gap-6 h-full">
       {/* Left: Grid */}
       <div className="flex-1 min-w-0 flex flex-col gap-5">
         {/* KPI strip */}
-        <div className="grid grid-cols-5 gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 md:gap-3">
           {[
             { label: 'Occupied',   count: stats.occupied,    color: 'bg-blue-50 text-blue-700 border-blue-100' },
             { label: 'Ready',      count: stats.ready,       color: 'bg-green-50 text-green-700 border-green-100' },
@@ -128,7 +260,7 @@ export default function RoomsView({ rooms, bookings, onStatusChange, onNewBookin
             { label: 'Maintenance',count: stats.maintenance, color: 'bg-red-50 text-red-700 border-red-100' },
             { label: 'Vacant',     count: stats.vacant,      color: 'bg-slate-50 text-slate-600 border-slate-200' },
           ].map(s => (
-            <div key={s.label} className={`rounded-xl border px-4 py-3 ${s.color}`}>
+            <div key={s.label} className={`flex-shrink-0 min-w-[100px] md:min-w-0 rounded-xl border px-4 py-3 ${s.color}`}>
               <p className="text-2xl font-bold">{s.count}</p>
               <p className="text-xs font-medium mt-0.5">{s.label}</p>
             </div>
@@ -165,7 +297,7 @@ export default function RoomsView({ rooms, bookings, onStatusChange, onNewBookin
         </div>
 
         {/* Room grid */}
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 auto-rows-min">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 auto-rows-min">
           {filtered.map(room => (
             <RoomCard
               key={room.id}
@@ -178,123 +310,49 @@ export default function RoomsView({ rooms, bookings, onStatusChange, onNewBookin
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="w-80 shrink-0">
-        {selected ? (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            {/* Header */}
-            <div className="px-5 py-4 bg-slate-800 text-white">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="font-semibold text-lg">{selected.name}</h3>
-                <StatusBadge status={selected.status} />
-              </div>
-              <p className="text-slate-400 text-sm">{selected.room_type} · ${selected.base_rate}/night</p>
-            </div>
-
-            <div className="p-5 space-y-5">
-              {/* Status changer */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Change Status</p>
-                <div className="space-y-1.5">
-                  {ALL_STATUSES.map(s => (
-                    <button
-                      key={s}
-                      disabled={changingStatus}
-                      onClick={() => handleStatusChange(s)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all disabled:opacity-40 ${
-                        selected.status === s
-                          ? `${STATUS_COLORS[s].bg} ${STATUS_COLORS[s].text} font-medium`
-                          : 'hover:bg-slate-50 text-slate-600'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[s].dot}`} />
-                      {STATUS_LABELS[s]}
-                      {selected.status === s && <span className="ml-auto text-xs">Current</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Active booking */}
-              {activeBooking && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Active Booking</p>
-                  <button
-                    onClick={() => onViewBooking(activeBooking)}
-                    className="w-full text-left bg-blue-50 rounded-xl p-3 hover:bg-blue-100 transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium text-blue-800 text-sm">{activeBooking.guest_name}</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
-                    </div>
-                    <p className="text-xs text-blue-500 mt-1 pl-6">
-                      {formatDate(activeBooking.check_in, 'MMM d')} – {formatDate(activeBooking.check_out, 'MMM d')} · {activeBooking.source}
-                    </p>
-                  </button>
-                </div>
-              )}
-
-              {/* Upcoming */}
-              {upcomingBooking && !activeBooking && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Upcoming</p>
-                  <button
-                    onClick={() => onViewBooking(upcomingBooking)}
-                    className="w-full text-left bg-amber-50 rounded-xl p-3 hover:bg-amber-100 transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-amber-800 text-sm">{upcomingBooking.guest_name}</span>
-                      <ChevronRight className="w-4 h-4 text-amber-400" />
-                    </div>
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      {formatDate(upcomingBooking.check_in, 'MMM d')} – {formatDate(upcomingBooking.check_out, 'MMM d')}
-                    </p>
-                  </button>
-                </div>
-              )}
-
-              {/* All bookings for this room */}
-              {roomBookings.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">All Bookings</p>
-                  <div className="space-y-1.5 max-h-44 overflow-y-auto">
-                    {roomBookings.map(b => (
-                      <button
-                        key={b.id}
-                        onClick={() => onViewBooking(b)}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
-                      >
-                        <p className="text-sm text-slate-700 font-medium truncate">{b.guest_name}</p>
-                        <p className="text-xs text-slate-400">
-                          {formatDate(b.check_in, 'MMM d')} – {formatDate(b.check_out, 'MMM d')}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Add booking CTA */}
-              <button
-                onClick={() => onNewBooking(selected.id)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                New Booking
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="h-64 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed border-slate-200 text-center px-6">
-            <BedDouble className="w-10 h-10 text-slate-300 mb-3" />
-            <p className="text-slate-500 font-medium text-sm">Select a room</p>
-            <p className="text-slate-400 text-xs mt-1">Click any room card to manage status and bookings</p>
-          </div>
+      {/* Desktop panel — hidden on mobile */}
+      <div className={`hidden md:block w-80 flex-shrink-0 border-l border-slate-200 overflow-y-auto transition-all ${selected ? 'md:block' : 'md:hidden'}`}>
+        {selected && (
+          <RoomDetailPanelContent
+            selected={selected}
+            activeBooking={activeBooking}
+            upcomingBooking={upcomingBooking}
+            roomBookings={roomBookings}
+            changingStatus={changingStatus}
+            onStatusChange={handleStatusChange}
+            onViewBooking={onViewBooking}
+            onNewBooking={onNewBooking}
+          />
         )}
       </div>
+
+      {/* Mobile bottom sheet */}
+      {selected && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={() => setSelected(null)}
+          />
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white rounded-t-2xl shadow-2xl overflow-y-auto"
+            style={{ maxHeight: '72vh' }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            <RoomDetailPanelContent
+              selected={selected}
+              activeBooking={activeBooking}
+              upcomingBooking={upcomingBooking}
+              roomBookings={roomBookings}
+              changingStatus={changingStatus}
+              onStatusChange={handleStatusChange}
+              onViewBooking={onViewBooking}
+              onNewBooking={onNewBooking}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -26,7 +26,11 @@ export default function BookingDetailDrawer({ booking, onClose, onCancel, onUpda
   const open = !!booking;
 
   if (!booking) {
-    return <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-40 flex flex-col transition-transform duration-300 translate-x-full" />;
+    return (
+      <div
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 overflow-y-auto flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none translate-y-full md:translate-x-full md:translate-y-0`}
+      />
+    );
   }
 
   const nights = differenceInDays(booking.check_out, booking.check_in);
@@ -55,8 +59,15 @@ export default function BookingDetailDrawer({ booking, onClose, onCancel, onUpda
 
   return (
     <>
-      {open && <div className="fixed inset-0 bg-black/30 z-30 backdrop-blur-sm" onClick={onClose} />}
-      <div className={`fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-40 flex flex-col transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+      {open && <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />}
+      <div
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 overflow-y-auto flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
+          open ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'
+        }`}
+      >
+        <div className="flex justify-center pt-3 pb-2 md:hidden">
+          <div className="w-10 h-1 rounded-full bg-slate-300" />
+        </div>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
             <h2 className="font-semibold text-slate-800 text-lg">{booking.guest_name}</h2>

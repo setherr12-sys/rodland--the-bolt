@@ -15,7 +15,7 @@ const nav: { id: View; label: string; icon: React.ReactNode }[] = [
 
 export default function Sidebar({ view, setView }: Props) {
   return (
-    <aside className="w-60 bg-slate-900 text-white flex flex-col shrink-0 h-full">
+    <aside className="hidden md:flex flex-col w-60 bg-slate-900 text-white shrink-0 h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-slate-700/60">
         <div className="flex items-center gap-3">

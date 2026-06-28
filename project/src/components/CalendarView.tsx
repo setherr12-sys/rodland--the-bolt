@@ -132,8 +132,12 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
         </div>
       </div>
 
+      <p className="md:hidden text-xs text-center text-slate-400 mt-2 mb-4">
+        Room timeline available on larger screens
+      </p>
+
       {/* Room Timeline */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100">
           <h3 className="font-semibold text-slate-700 text-sm">Room Timeline — {formatDate(monthDate, 'MMMM yyyy')}</h3>
         </div>
