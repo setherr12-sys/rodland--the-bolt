@@ -78,12 +78,32 @@ export async function createBooking(input: BookingInput): Promise<Booking> {
   return data as Booking;
 }
 
-export async function updateBooking(id: number, updates: Partial<BookingInput>): Promise<void> {
+export async function updateBooking(
+  id: number,
+  updates: {
+    guest_name: string;
+    room_id: number;
+    check_in: string;
+    check_out: string;
+    nightly_rate: number;
+    source: string;
+    notes: string | null;
+    payment_status: string;
+  }
+): Promise<void> {
   const { error } = await supabase
     .from('bookings')
     .update(updates)
     .eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteBooking(id: number): Promise<void> {
+  const { error } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
 }
 
 export async function cancelBooking(id: number, reason?: string): Promise<void> {

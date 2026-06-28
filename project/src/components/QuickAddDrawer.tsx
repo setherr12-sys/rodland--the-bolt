@@ -125,7 +125,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               {rooms.map(r => (
-                <option key={r.id} value={r.id}>{r.name} — {r.room_type} ({formatUGX(r.base_rate)}/night)</option>
+                <option key={r.id} value={r.id}>{r.name} — {r.room_type}</option>
               ))}
             </select>
           </div>
