@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Room, PaymentStatus } from '../lib/types';
 import type { BookingInput } from '../lib/actions';
+import { formatUGX } from '../lib/dateUtils';
 
 interface Props {
   open: boolean;
@@ -124,7 +125,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               {rooms.map(r => (
-                <option key={r.id} value={r.id}>{r.name} — {r.room_type}</option>
+                <option key={r.id} value={r.id}>{r.name} — {r.room_type} ({formatUGX(r.base_rate)}/night)</option>
               ))}
             </select>
           </div>
@@ -166,7 +167,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
           {/* Rate and Source */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Nightly Rate ($)</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Nightly Rate (UGX)</label>
               <input
                 type="number"
                 min="1"
@@ -225,8 +226,8 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
           {nights > 0 && (
             <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-3">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">{nights} night{nights !== 1 ? 's' : ''} × ${Number(form.nightly_rate || 0)}</span>
-                <span className="font-semibold text-slate-800">${total}</span>
+                <span className="text-slate-600">{nights} night{nights !== 1 ? 's' : ''} × {formatUGX(Number(form.nightly_rate || 0))}</span>
+                <span className="font-semibold text-slate-800">{formatUGX(total)}</span>
               </div>
             </div>
           )}

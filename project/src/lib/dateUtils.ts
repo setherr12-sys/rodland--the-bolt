@@ -101,3 +101,7 @@ export function toDateStr(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
+
+export function formatUGX(amount: number): string {
+  return 'UGX ' + Math.round(amount).toLocaleString('en-UG');
+}

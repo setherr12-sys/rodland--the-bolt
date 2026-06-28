@@ -27,6 +27,108 @@ const ROOM_COLORS = [
   'bg-teal-500',
 ];
 
+type LaneRole = 'start' | 'mid' | 'end' | 'solo' | 'empty';
+
+type LaneAssignment = {
+  booking: Booking;
+  laneIndex: number;
+  role: LaneRole[];
+};
+
+function buildWeekLanes(weekDays: Date[], bookings: Booking[]): LaneAssignment[] {
+  const assignments: LaneAssignment[] = [];
+  const occupiedLanes: number[] = [];
+
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
+  const activeBookings = bookings
+    .filter(b => {
+      const ci = new Date(b.check_in);
+      const co = new Date(b.check_out);
+      return ci <= weekEnd && co > weekStart;
+    })
+    .sort((a, b) => new Date(a.check_in).getTime() - new Date(b.check_in).getTime());
+
+  for (const booking of activeBookings) {
+    let lane = 0;
+    while (occupiedLanes[lane] !== undefined && occupiedLanes[lane] !== booking.id) {
+      lane++;
+    }
+    occupiedLanes[lane] = booking.id;
+
+    const roles: LaneRole[] = weekDays.map((day, idx) => {
+      const dayStr = toDateStr(day);
+      const ciStr = booking.check_in;
+      const coStr = booking.check_out;
+
+      if (dayStr < ciStr || dayStr >= coStr) return 'empty';
+
+      const isStart = dayStr === ciStr;
+      const nextDay = weekDays[idx + 1];
+      const nextDayStr = nextDay ? toDateStr(nextDay) : null;
+      const continuesAfterWeek = idx === 6 && dayStr < coStr;
+      const isEnd = !nextDayStr || nextDayStr >= coStr || continuesAfterWeek;
+
+      if (isStart && isEnd) return 'solo';
+      if (isStart) return 'start';
+      if (isEnd) return 'end';
+      return 'mid';
+    });
+
+    assignments.push({ booking, laneIndex: lane, role: roles });
+  }
+
+  return assignments;
+}
+
+function renderDayCell(
+  dayIndex: number,
+  weekLanes: LaneAssignment[],
+  roomColors: Record<number, string>,
+  onViewBooking: (b: Booking) => void,
+) {
+  const maxLane = Math.max(0, ...weekLanes.map(a => a.laneIndex));
+
+  return (
+    <div className="flex flex-col gap-0.5 pt-1">
+      {Array.from({ length: maxLane + 1 }, (_, lane) => {
+        const assignment = weekLanes.find(a => a.laneIndex === lane);
+        if (!assignment) return <div key={lane} className="h-6" />;
+
+        const role = assignment.role[dayIndex];
+        if (role === 'empty') return <div key={lane} className="h-6" />;
+
+        const color = roomColors[assignment.booking.room_id];
+        const showLabel = role === 'start' || role === 'solo';
+
+        const borderRadius = {
+          solo: 'rounded',
+          start: 'rounded-l rounded-r-none',
+          mid: 'rounded-none',
+          end: 'rounded-r rounded-l-none',
+        }[role];
+
+        const marginLeft = role === 'mid' || role === 'end' ? '-ml-px' : '';
+        const marginRight = role === 'mid' || role === 'start' ? '-mr-px' : '';
+
+        return (
+          <button
+            key={lane}
+            type="button"
+            onClick={() => onViewBooking(assignment.booking)}
+            title={`${assignment.booking.guest_name} – ${assignment.booking.room?.name ?? ''}`}
+            className={`h-6 flex items-center px-1.5 text-white text-xs font-medium cursor-pointer
+              ${color} ${borderRadius} ${marginLeft} ${marginRight}
+              overflow-hidden whitespace-nowrap hover:opacity-90 transition-opacity`}
+          >
+            {showLabel ? assignment.booking.guest_name.split(' ')[0] : ''}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function CalendarView({ rooms, bookings, onViewBooking, onNewBooking }: Props) {
   const [monthDate, setMonthDate] = useState(new Date());
 
@@ -41,14 +143,14 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
 
   const timelineDays = eachDayOfInterval(monthStart, new Date(monthEnd.getTime() - 86400000));
 
-  function getBookingsForDay(day: Date): Booking[] {
-    const d = toDateStr(day);
-    return bookings.filter(b => b.check_in <= d && b.check_out > d);
-  }
+  const roomColors: Record<number, string> = {};
+  rooms.forEach(r => {
+    const idx = rooms.findIndex(x => x.id === r.id);
+    roomColors[r.id] = ROOM_COLORS[idx % ROOM_COLORS.length];
+  });
 
   function getRoomColor(roomId: number) {
-    const idx = rooms.findIndex(r => r.id === roomId);
-    return ROOM_COLORS[idx % ROOM_COLORS.length];
+    return roomColors[roomId] ?? ROOM_COLORS[0];
   }
 
   function getBookingSpan(booking: Booking) {
@@ -65,8 +167,8 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
   const totalDays = timelineDays.length;
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 min-h-0">
+      <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold text-slate-800">
             {formatDate(monthDate, 'MMMM yyyy')}
@@ -89,46 +191,36 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
       </div>
 
       {/* Mini calendar */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="grid grid-cols-7 border-b border-slate-100">
           {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
             <div key={d} className="px-2 py-2.5 text-center text-xs font-semibold text-slate-500">{d}</div>
           ))}
         </div>
         <div>
-          {weeks.map((week, wi) => (
-            <div key={wi} className="grid grid-cols-7 border-b border-slate-50 last:border-0">
-              {week.map(day => {
-                const dayBookings = getBookingsForDay(day);
-                const inMonth = isSameMonth(day, monthDate);
-                const todayFlag = isToday(day);
-                return (
-                  <div key={day.toISOString()} className={`min-h-[80px] p-1.5 border-r border-slate-50 last:border-0 ${!inMonth ? 'bg-slate-50/60' : ''}`}>
-                    <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                      todayFlag ? 'bg-amber-500 text-white' : inMonth ? 'text-slate-700' : 'text-slate-300'
-                    }`}>
-                      {day.getDate()}
+          {weeks.map((weekDays, weekIdx) => {
+            const weekLanes = buildWeekLanes(weekDays, bookings);
+            return (
+              <div key={weekIdx} className="grid grid-cols-7 border-b border-slate-50 last:border-0">
+                {weekDays.map((day, dayIdx) => {
+                  const inMonth = isSameMonth(day, monthDate);
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={`min-h-[80px] border-t border-slate-100 p-1 border-r border-slate-50 last:border-r-0 ${!inMonth ? 'bg-slate-50/60' : ''}`}
+                    >
+                      <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full
+                        ${isToday(day) ? 'bg-amber-500 text-white' : inMonth ? 'text-slate-600' : 'text-slate-300'}`}
+                      >
+                        {day.getDate()}
+                      </div>
+                      {renderDayCell(dayIdx, weekLanes, roomColors, onViewBooking)}
                     </div>
-                    <div className="space-y-0.5">
-                      {dayBookings.slice(0, 3).map(b => (
-                        <button
-                          key={b.id}
-                          onClick={() => onViewBooking(b)}
-                          className={`w-full text-left px-1.5 py-0.5 rounded text-xs text-white font-medium truncate ${getRoomColor(b.room_id)} hover:opacity-80 transition-opacity`}
-                          title={`${b.guest_name} – ${b.room?.name}`}
-                        >
-                          {b.guest_name.split(' ')[0]}
-                        </button>
-                      ))}
-                      {dayBookings.length > 3 && (
-                        <p className="text-xs text-slate-400 pl-1">+{dayBookings.length - 3} more</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -137,24 +229,27 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
       </p>
 
       {/* Room Timeline */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm">
         <div className="px-5 py-3 border-b border-slate-100">
           <h3 className="font-semibold text-slate-700 text-sm">Room Timeline — {formatDate(monthDate, 'MMMM yyyy')}</h3>
         </div>
         <div className="overflow-x-auto">
-          <div style={{ minWidth: Math.max(700, totalDays * 30 + 120) }}>
+          <div style={{ minWidth: `${totalDays * 30 + 140}px` }}>
             <div className="flex border-b border-slate-100">
               <div className="w-28 shrink-0 px-4 py-2 text-xs font-medium text-slate-500">Room</div>
               <div className="flex-1 flex">
-                {timelineDays.map(d => (
-                  <div
-                    key={d.toISOString()}
-                    className={`flex-1 text-center py-2 text-xs font-medium border-l border-slate-50 ${isToday(d) ? 'text-amber-600 bg-amber-50' : 'text-slate-400'}`}
-                    style={{ minWidth: 30 }}
-                  >
-                    {d.getDate()}
-                  </div>
-                ))}
+                {timelineDays.map(d => {
+                  const isTodayCol = isToday(d) && isSameMonth(d, monthDate);
+                  return (
+                    <div
+                      key={d.toISOString()}
+                      className={`flex-1 text-center py-2 text-xs font-medium border-l border-slate-50 ${isTodayCol ? 'text-amber-600 bg-amber-50' : 'text-slate-400'}`}
+                      style={{ minWidth: 30 }}
+                    >
+                      {d.getDate()}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {rooms.map(room => {
@@ -166,13 +261,16 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                   </div>
                   <div className="flex-1 relative" style={{ height: ROW_H + 8 }}>
                     <div className="absolute inset-0 flex pointer-events-none">
-                      {timelineDays.map(d => (
-                        <div
-                          key={d.toISOString()}
-                          className={`flex-1 border-l border-slate-50 ${isToday(d) ? 'bg-amber-50/60' : ''}`}
-                          style={{ minWidth: 30 }}
-                        />
-                      ))}
+                      {timelineDays.map(d => {
+                        const isTodayCol = isToday(d) && isSameMonth(d, monthDate);
+                        return (
+                          <div
+                            key={d.toISOString()}
+                            className={`flex-1 border-l border-slate-50 ${isTodayCol ? 'bg-amber-50' : ''}`}
+                            style={{ minWidth: 30 }}
+                          />
+                        );
+                      })}
                     </div>
                     {roomBookings.map(b => {
                       const { startIdx, spanDays } = getBookingSpan(b);
@@ -182,12 +280,13 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                       return (
                         <button
                           key={b.id}
+                          type="button"
                           onClick={() => onViewBooking(b)}
                           title={`${b.guest_name} (${b.check_in} – ${b.check_out})`}
-                          className={`absolute top-1 rounded text-white text-xs font-medium px-1.5 truncate hover:opacity-80 transition-opacity ${getRoomColor(b.room_id)}`}
-                          style={{ left: `${leftPct}%`, width: `${widthPct}%`, height: ROW_H, lineHeight: `${ROW_H}px` }}
+                          className={`absolute top-1 flex items-center px-2 rounded text-white text-xs font-medium overflow-hidden hover:opacity-80 transition-opacity ${getRoomColor(b.room_id)}`}
+                          style={{ left: `${leftPct}%`, width: `${widthPct}%`, height: ROW_H }}
                         >
-                          {b.guest_name.split(' ')[0]}
+                          <span className="truncate">{b.guest_name}</span>
                         </button>
                       );
                     })}

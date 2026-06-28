@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Calendar, DollarSign, MapPin, FileText, AlertTriangle } from 'lucide-react';
 import type { Booking, PaymentStatus } from '../lib/types';
 import { PAYMENT_COLORS, SOURCE_COLORS } from '../lib/types';
-import { formatDate, differenceInDays } from '../lib/dateUtils';
+import { formatDate, differenceInDays, formatUGX } from '../lib/dateUtils';
 
 interface Props {
   booking: Booking | null;
@@ -108,7 +108,7 @@ export default function BookingDetailDrawer({ booking, onClose, onCancel, onUpda
             </div>
             <div className="border-t border-slate-200 pt-3 flex justify-between text-sm">
               <span className="text-slate-500">{nights} night{nights !== 1 ? 's' : ''}</span>
-              <span className="font-semibold text-slate-800">${total} total</span>
+              <span className="font-semibold text-slate-800">{formatUGX(total)} total</span>
             </div>
           </div>
 
@@ -121,7 +121,7 @@ export default function BookingDetailDrawer({ booking, onClose, onCancel, onUpda
             <div className="flex items-center gap-3 text-sm">
               <DollarSign className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="text-slate-500">Rate</span>
-              <span className="ml-auto font-medium text-slate-800">${booking.nightly_rate}/night</span>
+              <span className="ml-auto font-medium text-slate-800">{formatUGX(booking.nightly_rate)}/night</span>
             </div>
           </div>
 
