@@ -75,6 +75,8 @@ export default function BookingDetailDrawer({
   const [cancelMode, setCancelMode] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [extensionMode, setExtensionMode] = useState(false);
+  const [extensionNote, setExtensionNote] = useState('');
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [reason, setReason] = useState('');
   const [working, setWorking] = useState(false);
@@ -86,6 +88,8 @@ export default function BookingDetailDrawer({
     setCancelMode(false);
     setDeleteMode(false);
     setEditing(false);
+    setExtensionMode(false);
+    setExtensionNote('');
     setEditForm(null);
     setReason('');
     setEditErr('');
@@ -110,6 +114,8 @@ export default function BookingDetailDrawer({
     if (!booking) return;
     setEditForm(bookingToForm(booking));
     setEditing(true);
+    setExtensionMode(false);
+    setExtensionNote('');
     setEditErr('');
     setCancelMode(false);
     setDeleteMode(false);
@@ -162,8 +168,10 @@ export default function BookingDetailDrawer({
         source: editForm.source,
         notes: editForm.notes.trim() || null,
         payment_status: editForm.payment_status,
+        status: extensionMode ? 'extended' : undefined,
       });
       setEditing(false);
+      setExtensionMode(false);
       setEditForm(null);
     } catch (e) {
       setEditErr((e as Error).message);
@@ -172,29 +180,14 @@ export default function BookingDetailDrawer({
     }
   }
 
-  async function handleExtend() {
-    if (!editForm || !booking) return;
-    setWorking(true);
+  function handleExtend() {
+    if (!booking) return;
+    setEditForm(bookingToForm(booking));
+    setExtensionMode(true);
+    setEditing(true);
     setEditErr('');
-    try {
-      await onUpdateBooking(booking.id, {
-        guest_name: editForm.guest_name.trim(),
-        room_id: editForm.room_id,
-        check_in: editForm.check_in,
-        check_out: editForm.check_out,
-        nightly_rate: editForm.nightly_rate,
-        source: editForm.source,
-        notes: editForm.notes.trim() || null,
-        payment_status: editForm.payment_status,
-        status: 'extended',
-      });
-      setEditing(false);
-      setEditForm(null);
-    } catch (e) {
-      setEditErr((e as Error).message);
-    } finally {
-      setWorking(false);
-    }
+    setCancelMode(false);
+    setDeleteMode(false);
   }
 
   async function handleDelete() {
@@ -234,7 +227,7 @@ export default function BookingDetailDrawer({
             </p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {!editing && !deleteMode && booking.status === 'confirmed' && (
+            {!editing && !deleteMode && booking.status !== 'cancelled' && (
               <>
                 <button
                   onClick={startEditing}
@@ -410,12 +403,17 @@ export default function BookingDetailDrawer({
                 <button
                   type="button"
                   onClick={handleExtend}
-                  disabled={working || booking.status === 'extended'}
+                  disabled={working || booking.status === 'cancelled'}
                   className="w-full py-2.5 text-sm font-medium rounded-lg bg-cyan-600 text-white hover:bg-cyan-700 disabled:opacity-50 transition-colors"
                 >
-                  {booking.status === 'extended' ? 'Already extended' : 'Extend booking'}
+                  Extend booking
                 </button>
               </div>
+              {extensionMode && (
+                <div className="rounded-lg border border-cyan-100 bg-cyan-50 p-3 text-sm text-slate-700">
+                  Update the new check-out date and nightly rate for the extension, then click Save changes to record it.
+                </div>
+              )}
             </>
           ) : (
             <>

@@ -76,6 +76,7 @@ export default function App() {
       source: string;
       notes: string | null;
       payment_status: string;
+      status?: 'confirmed' | 'cancelled' | 'extended';
     }
   ) => {
     try {
