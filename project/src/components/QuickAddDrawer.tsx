@@ -49,7 +49,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
       setForm(f => ({
         ...f,
         room_id: roomId,
-        nightly_rate: room ? String(room.base_rate) : '',
+        nightly_rate: '',
         guest_name: '',
         notes: '',
         check_in: today(),
@@ -134,9 +134,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
             <select
               value={form.room_id}
               onChange={e => {
-                const r = rooms.find(x => x.id === Number(e.target.value));
                 set('room_id', e.target.value);
-                if (r) set('nightly_rate', String(r.base_rate));
               }}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
