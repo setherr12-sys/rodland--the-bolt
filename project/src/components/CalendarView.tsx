@@ -81,55 +81,65 @@ function buildWeekLanes(weekDays: Date[], bookings: Booking[]): LaneAssignment[]
   return assignments;
 }
 
-function renderDayCell(
-  dayIndex: number,
+function renderWeekRow(
+  weekDays: Date[],
   weekLanes: LaneAssignment[],
-  roomColors: Record<number, string>,
+  monthDate: Date,
   getBookingColor: (booking: Booking) => string,
   onViewBooking: (b: Booking) => void,
 ) {
-  // Always render 8 lanes (0..7) so stacking is stable across weeks
+  const dayWidthPct = 100 / 7;
+
   return (
-    <div className="flex flex-col gap-0.5 pt-1">
-      {Array.from({ length: 8 }, (_, lane) => {
-        const assignment = weekLanes.find(a => a.laneIndex === lane);
-        if (!assignment) return <div key={lane} className="h-4" />;
+    <div className="relative border-b border-slate-50" style={{ minHeight: '164px' }}>
+      <div className="grid grid-cols-7">
+        {weekDays.map(day => {
+          const inMonth = isSameMonth(day, monthDate);
+          return (
+            <div
+              key={day.toISOString()}
+              className={`border-t border-slate-100 p-1 border-r border-slate-50 last:border-r-0 ${!inMonth ? 'bg-slate-50/60' : ''}`}
+            >
+              <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full
+                ${isToday(day) ? 'bg-amber-500 text-white' : inMonth ? 'text-slate-600' : 'text-slate-300'}`}
+              >
+                {day.getDate()}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="absolute inset-x-0 top-[3.5rem] bottom-0 px-1 pb-2">
+        {weekLanes.map((assignment, lane) => {
+          const startIndex = assignment.role.findIndex(role => role !== 'empty');
+          if (startIndex === -1) return null;
 
-        const role = assignment.role[dayIndex];
-        if (role === 'empty') return <div key={lane} className="h-4" />;
+          const endIndex = assignment.role.slice(startIndex).findIndex(role => role === 'empty');
+          const spanDays = endIndex === -1 ? assignment.role.length - startIndex : endIndex;
+          const leftPct = startIndex * dayWidthPct;
+          const widthPct = Math.max(spanDays * dayWidthPct, dayWidthPct);
+          const color = getBookingColor(assignment.booking);
+          const showLabel = assignment.role[startIndex] === 'start' || assignment.role[startIndex] === 'solo';
 
-        const color = getBookingColor(assignment.booking);
-        const showLabel = role === 'start' || role === 'solo';
-
-        const continuesFromLeft = role === 'mid' || role === 'end';
-        const continuesRight = role === 'mid' || role === 'start';
-
-        const borderRadiusClass = continuesFromLeft && continuesRight
-          ? 'rounded-none'
-          : continuesFromLeft
-          ? 'rounded-r rounded-l-none'
-          : continuesRight
-          ? 'rounded-l rounded-r-none'
-          : 'rounded';
-
-        const style: Record<string, string | number> = {
-          marginLeft: continuesFromLeft ? '-1px' : '0',
-          marginRight: continuesRight ? '-1px' : '0',
-        };
-
-        return (
-          <button
-            key={lane}
-            type="button"
-            onClick={() => onViewBooking(assignment.booking)}
-            title={`${assignment.booking.guest_name} – ${assignment.booking.room?.name ?? ''}`}
-            className={`h-4 flex items-center px-1.5 text-white text-xs font-medium cursor-pointer overflow-hidden whitespace-nowrap hover:opacity-90 transition-opacity ${color} ${borderRadiusClass}`}
-            style={{ ...style, fontSize: '10px', lineHeight: '16px' }}
-          >
-            {showLabel ? assignment.booking.guest_name.split(' ')[0] : ''}
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={`${assignment.booking.id}-${lane}`}
+              type="button"
+              onClick={() => onViewBooking(assignment.booking)}
+              title={`${assignment.booking.guest_name} – ${assignment.booking.room?.name ?? ''}`}
+              className={`absolute flex items-center px-2 rounded text-white text-[10px] font-medium overflow-hidden hover:opacity-80 transition-opacity ${color}`}
+              style={{
+                left: `${leftPct}%`,
+                width: `${widthPct}%`,
+                top: `${lane * 20}px`,
+                height: 16,
+              }}
+            >
+              <span className="truncate">{showLabel ? assignment.booking.guest_name.split(' ')[0] : ''}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -213,29 +223,11 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
           ))}
         </div>
         <div>
-          {weeksWithLanes.map(({ weekDays, weekLanes }, weekIdx) => {
-            return (
-              <div key={weekIdx} className="grid grid-cols-7 border-b border-slate-50 last:border-0">
-                {weekDays.map((day, dayIdx) => {
-                  const inMonth = isSameMonth(day, monthDate);
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      className={`border-t border-slate-100 p-1 border-r border-slate-50 last:border-r-0 ${!inMonth ? 'bg-slate-50/60' : ''}`}
-                      style={{ minHeight: '164px' }}
-                    >
-                      <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full
-                        ${isToday(day) ? 'bg-amber-500 text-white' : inMonth ? 'text-slate-600' : 'text-slate-300'}`}
-                      >
-                        {day.getDate()}
-                      </div>
-                      {renderDayCell(dayIdx, weekLanes, roomColors, getBookingColor, onViewBooking)}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          {weeksWithLanes.map(({ weekDays, weekLanes }, weekIdx) => (
+            <div key={weekIdx}>
+              {renderWeekRow(weekDays, weekLanes, monthDate, getBookingColor, onViewBooking)}
+            </div>
+          ))}
         </div>
       </div>
 
