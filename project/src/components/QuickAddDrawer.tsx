@@ -113,7 +113,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
     <>
       {open && <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />}
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[calc(100vh-4rem)] md:max-h-[calc(100vh-4rem)] md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
           open ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'
         }`}
       >
@@ -127,7 +127,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-scroll px-6 pt-5 pb-28 space-y-4">
           {/* Room */}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Room</label>
@@ -265,7 +265,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
         </form>
 
         {/* FOOTER — fixed primary action */}
-        <div className="px-6 py-4 border-t border-slate-100 bg-white">
+        <div className="sticky bottom-0 px-6 py-4 border-t border-slate-100 bg-white">
           <button
             onClick={handleSubmit}
             disabled={saving}

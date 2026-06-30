@@ -1,6 +1,25 @@
 import { supabase } from './supabase';
 import type { Room, Booking, RoomStatus, BookingStatus, PaymentStatus } from './types';
 
+async function hasBookingConflict(roomId: number, checkIn: string, checkOut: string, excludeId?: number): Promise<boolean> {
+  let query = supabase
+    .from('bookings')
+    .select('id')
+    .eq('room_id', roomId)
+    .neq('status', 'cancelled')
+    .lt('check_in', checkOut)
+    .gt('check_out', checkIn)
+    .limit(1);
+
+  if (excludeId !== undefined) {
+    query = query.neq('id', excludeId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 export async function loadRooms(): Promise<Room[]> {
   const { data, error } = await supabase
     .from('rooms')
@@ -59,6 +78,11 @@ export interface BookingInput {
 }
 
 export async function createBooking(input: BookingInput): Promise<Booking> {
+  const hasConflict = await hasBookingConflict(input.room_id, input.check_in, input.check_out);
+  if (hasConflict) {
+    throw new Error('This room is already occupied during the selected dates.');
+  }
+
   const { data, error } = await supabase
     .from('bookings')
     .insert({ ...input, status: 'confirmed' })
@@ -91,6 +115,11 @@ export async function updateBooking(
     payment_status: string;
   }
 ): Promise<void> {
+  const hasConflict = await hasBookingConflict(updates.room_id, updates.check_in, updates.check_out, id);
+  if (hasConflict) {
+    throw new Error('Cannot update: the new dates overlap with an existing booking.');
+  }
+
   const { error } = await supabase
     .from('bookings')
     .update(updates)

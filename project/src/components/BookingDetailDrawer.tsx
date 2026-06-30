@@ -191,7 +191,7 @@ export default function BookingDetailDrawer({
     <>
       {open && <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />}
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[calc(100vh-4rem)] md:max-h-[calc(100vh-4rem)] md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
           open ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'
         }`}
       >
@@ -223,7 +223,7 @@ export default function BookingDetailDrawer({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-scroll px-6 pt-5 pb-28 space-y-5">
           {deleteMode ? (
             <div className="space-y-4">
               <div className="flex items-start gap-3">
@@ -472,7 +472,7 @@ export default function BookingDetailDrawer({
 
         {/* FOOTER — fixed. In edit mode show discard/save; otherwise show booking totals only */}
         {!deleteMode && (
-          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50">
+          <div className="sticky bottom-0 px-6 py-4 border-t border-slate-100 bg-slate-50">
             {editing ? (
               <div className="flex gap-3">
                 <button
