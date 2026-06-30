@@ -89,6 +89,9 @@ function renderWeekRow(
   onViewBooking: (b: Booking) => void,
 ) {
   const dayWidthPct = 100 / 7;
+  const laneHeight = 10;
+  const laneSpacing = 2;
+  const laneStride = laneHeight + laneSpacing;
 
   return (
     <div className="relative border-b border-slate-50" style={{ minHeight: '164px' }}>
@@ -127,12 +130,13 @@ function renderWeekRow(
               type="button"
               onClick={() => onViewBooking(assignment.booking)}
               title={`${assignment.booking.guest_name} – ${assignment.booking.room?.name ?? ''}`}
-              className={`absolute flex items-center px-2 rounded text-white text-[10px] font-medium overflow-hidden hover:opacity-80 transition-opacity ${color}`}
+              className={`absolute flex items-center px-1.5 rounded text-white text-[9px] font-medium overflow-hidden hover:opacity-80 transition-opacity ${color}`}
               style={{
                 left: `${leftPct}%`,
                 width: `${widthPct}%`,
-                top: `${lane * 20}px`,
-                height: 16,
+                top: `${lane * laneStride}px`,
+                height: laneHeight,
+                lineHeight: `${laneHeight}px`,
               }}
             >
               <span className="truncate">{showLabel ? assignment.booking.guest_name.split(' ')[0] : ''}</span>
