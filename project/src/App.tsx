@@ -215,7 +215,7 @@ export default function App() {
           {view === 'calendar' && (
             <CalendarView
               rooms={rooms}
-              bookings={bookings}
+              bookings={allBookings}
               onViewBooking={setSelectedBooking}
               onNewBooking={openNewBooking}
             />

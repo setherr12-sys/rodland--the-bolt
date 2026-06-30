@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, DollarSign, MapPin, FileText, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
-import type { Booking, PaymentStatus, Room } from '../lib/types';
+import type { Booking, BookingStatus, PaymentStatus, Room } from '../lib/types';
 import { PAYMENT_COLORS, SOURCE_COLORS } from '../lib/types';
 import { formatDate, differenceInDays, formatUGX } from '../lib/dateUtils';
 
@@ -21,6 +21,7 @@ interface Props {
       source: string;
       notes: string | null;
       payment_status: string;
+      status?: BookingStatus;
     }
   ) => Promise<void>;
   onDeleteBooking: (id: number) => Promise<void>;
@@ -161,6 +162,31 @@ export default function BookingDetailDrawer({
         source: editForm.source,
         notes: editForm.notes.trim() || null,
         payment_status: editForm.payment_status,
+      });
+      setEditing(false);
+      setEditForm(null);
+    } catch (e) {
+      setEditErr((e as Error).message);
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function handleExtend() {
+    if (!editForm || !booking) return;
+    setWorking(true);
+    setEditErr('');
+    try {
+      await onUpdateBooking(booking.id, {
+        guest_name: editForm.guest_name.trim(),
+        room_id: editForm.room_id,
+        check_in: editForm.check_in,
+        check_out: editForm.check_out,
+        nightly_rate: editForm.nightly_rate,
+        source: editForm.source,
+        notes: editForm.notes.trim() || null,
+        payment_status: editForm.payment_status,
+        status: 'extended',
       });
       setEditing(false);
       setEditForm(null);
@@ -372,6 +398,24 @@ export default function BookingDetailDrawer({
                 </div>
               </div>
               {editErr && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{editErr}</p>}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={working}
+                  className="w-full py-2.5 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  Cancel booking
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExtend}
+                  disabled={working || booking.status === 'extended'}
+                  className="w-full py-2.5 text-sm font-medium rounded-lg bg-cyan-600 text-white hover:bg-cyan-700 disabled:opacity-50 transition-colors"
+                >
+                  {booking.status === 'extended' ? 'Already extended' : 'Extend booking'}
+                </button>
+              </div>
             </>
           ) : (
             <>

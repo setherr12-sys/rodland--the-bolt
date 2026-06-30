@@ -32,7 +32,7 @@ function validateDateRange(data: { check_in: string; check_out: string }, ctx: z
 export const bookingFormSchema = bookingBaseSchema.superRefine(validateDateRange);
 
 export const bookingTableSchema = bookingBaseSchema.extend({
-  status: z.enum(['confirmed', 'cancelled']).optional().default('confirmed'),
+  status: z.enum(['confirmed', 'cancelled', 'extended']).optional().default('confirmed'),
 }).superRefine(validateDateRange);
 
 export type BookingTableInput = z.infer<typeof bookingTableSchema>;

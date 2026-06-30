@@ -1,5 +1,5 @@
 export type RoomStatus = 'occupied' | 'ready' | 'needs_cleaning' | 'maintenance' | 'vacant';
-export type BookingStatus = 'confirmed' | 'cancelled';
+export type BookingStatus = 'confirmed' | 'cancelled' | 'extended';
 export type PaymentStatus = 'airbnb' | 'paid' | 'partial' | 'unpaid';
 export type BookingSource = 'Airbnb' | 'Booking.com' | 'Direct' | 'Walk-in' | 'Other';
 

@@ -33,7 +33,7 @@ export async function loadBookings(): Promise<Booking[]> {
   const { data, error } = await supabase
     .from('bookings')
     .select('*, room:rooms(*)')
-    .eq('status', 'confirmed')
+    .in('status', ['confirmed', 'extended'])
     .order('check_in');
   if (error) throw error;
   return data as Booking[];
@@ -113,6 +113,7 @@ export async function updateBooking(
     source: string;
     notes: string | null;
     payment_status: string;
+    status?: BookingStatus;
   }
 ): Promise<void> {
   const hasConflict = await hasBookingConflict(updates.room_id, updates.check_in, updates.check_out, id);

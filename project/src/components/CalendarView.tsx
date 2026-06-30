@@ -85,6 +85,7 @@ function renderDayCell(
   dayIndex: number,
   weekLanes: LaneAssignment[],
   roomColors: Record<number, string>,
+  getBookingColor: (booking: Booking) => string,
   onViewBooking: (b: Booking) => void,
 ) {
   // Always render 8 lanes (0..7) so stacking is stable across weeks
@@ -97,7 +98,7 @@ function renderDayCell(
         const role = assignment.role[dayIndex];
         if (role === 'empty') return <div key={lane} className="h-4" />;
 
-        const color = roomColors[assignment.booking.room_id];
+        const color = getBookingColor(assignment.booking);
         const showLabel = role === 'start' || role === 'solo';
 
         const continuesFromLeft = role === 'mid' || role === 'end';
@@ -161,6 +162,12 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
     return roomColors[roomId] ?? ROOM_COLORS[0];
   }
 
+  function getBookingColor(booking: Booking) {
+    if (booking.status === 'cancelled') return 'bg-red-500';
+    if (booking.status === 'extended') return 'bg-cyan-500';
+    return getRoomColor(booking.room_id);
+  }
+
   function getBookingSpan(booking: Booking) {
     const start = parseISO(booking.check_in);
     const end = parseISO(booking.check_out);
@@ -171,7 +178,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
     return { startIdx, spanDays };
   }
 
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
+  const visibleBookings = bookings.filter(b => ['confirmed', 'extended', 'cancelled'].includes(b.status));
   const totalDays = timelineDays.length;
 
   return (
@@ -222,7 +229,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                       >
                         {day.getDate()}
                       </div>
-                      {renderDayCell(dayIdx, weekLanes, roomColors, onViewBooking)}
+                      {renderDayCell(dayIdx, weekLanes, roomColors, getBookingColor, onViewBooking)}
                     </div>
                   );
                 })}
@@ -261,7 +268,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
               </div>
             </div>
             {rooms.map(room => {
-              const roomBookings = confirmedBookings.filter(b => b.room_id === room.id);
+              const roomBookings = visibleBookings.filter(b => b.room_id === room.id);
               return (
                 <div key={room.id} className="flex border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
                   <div className="w-28 shrink-0 px-4 py-2 flex items-center">
@@ -291,7 +298,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                           type="button"
                           onClick={() => onViewBooking(b)}
                           title={`${b.guest_name} (${b.check_in} – ${b.check_out})`}
-                          className={`absolute top-1 flex items-center px-2 rounded text-white text-xs font-medium overflow-hidden hover:opacity-80 transition-opacity ${getRoomColor(b.room_id)}`}
+                          className={`absolute top-1 flex items-center px-2 rounded text-white text-xs font-medium overflow-hidden hover:opacity-80 transition-opacity ${getBookingColor(b)}`}
                           style={{ left: `${leftPct}%`, width: `${widthPct}%`, height: ROW_H }}
                         >
                           <span className="truncate">{spanDays >= 3 ? b.guest_name : ''}</span>
