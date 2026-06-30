@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, DollarSign, MapPin, FileText, AlertTriangle, Pencil } from 'lucide-react';
+import { X, Calendar, DollarSign, MapPin, FileText, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import type { Booking, PaymentStatus, Room } from '../lib/types';
 import { PAYMENT_COLORS, SOURCE_COLORS } from '../lib/types';
 import { formatDate, differenceInDays, formatUGX } from '../lib/dateUtils';
@@ -209,13 +209,22 @@ export default function BookingDetailDrawer({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {!editing && !deleteMode && booking.status === 'confirmed' && (
-              <button
-                onClick={startEditing}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600"
-                title="Edit booking"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
+              <>
+                <button
+                  onClick={startEditing}
+                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600"
+                  title="Edit booking"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setDeleteMode(true)}
+                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors text-red-600"
+                  title="Delete booking"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
             )}
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
               <X className="w-5 h-5 text-slate-500" />
