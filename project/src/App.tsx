@@ -7,7 +7,6 @@ import ReportsView from './components/ReportsView';
 import QuickAddDrawer from './components/QuickAddDrawer';
 import BookingDetailDrawer from './components/BookingDetailDrawer';
 import ToastContainer from './components/ToastContainer';
-import StatusBadge from './components/StatusBadge';
 import { useAppData } from './hooks/useAppData';
 import { useToast } from './hooks/useToast';
 import type { Room, Booking, RoomStatus, PaymentStatus } from './lib/types';

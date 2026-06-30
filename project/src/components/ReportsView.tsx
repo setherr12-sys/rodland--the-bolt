@@ -16,7 +16,6 @@ const PIE_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#f43f5e'];
 
 function BarChart({ data, height = 140 }: { data: { day: string; revenue: number }[]; height?: number }) {
   const max = Math.max(...data.map(d => d.revenue), 1);
-  const w = 100 / data.length;
   return (
     <svg viewBox={`0 0 ${data.length * 12} ${height}`} className="w-full" preserveAspectRatio="none" style={{ height }}>
       {data.map((d, i) => {

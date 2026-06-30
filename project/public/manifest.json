@@ -10,7 +10,13 @@
   "icons": [
     {
       "src": "/Gemini_Generated_Image_j7cqg4j7cqg4j7cq.png",
-      "sizes": "any",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/Gemini_Generated_Image_j7cqg4j7cqg4j7cq.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }

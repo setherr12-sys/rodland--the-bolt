@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, DollarSign, MapPin, FileText, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { X, Calendar, DollarSign, MapPin, FileText, AlertTriangle, Pencil } from 'lucide-react';
 import type { Booking, PaymentStatus, Room } from '../lib/types';
 import { PAYMENT_COLORS, SOURCE_COLORS } from '../lib/types';
 import { formatDate, differenceInDays, formatUGX } from '../lib/dateUtils';
@@ -106,6 +106,7 @@ export default function BookingDetailDrawer({
   const editTotal = editForm ? editNights * editForm.nightly_rate : 0;
 
   function startEditing() {
+    if (!booking) return;
     setEditForm(bookingToForm(booking));
     setEditing(true);
     setEditErr('');
@@ -120,9 +121,10 @@ export default function BookingDetailDrawer({
   }
 
   async function handleCancel() {
+    if (!booking) return;
     setWorking(true);
     try {
-      await onCancel(booking!.id, reason.trim() || undefined);
+      await onCancel(booking.id, reason.trim() || undefined);
       setCancelMode(false);
       onClose();
     } finally {
@@ -131,9 +133,10 @@ export default function BookingDetailDrawer({
   }
 
   async function handlePayment(status: PaymentStatus) {
+    if (!booking) return;
     setWorking(true);
     try {
-      await onUpdatePayment(booking!.id, status);
+      await onUpdatePayment(booking.id, status);
       if (editForm) setEditForm(f => f ? { ...f, payment_status: status } : f);
     } finally {
       setWorking(false);
@@ -141,7 +144,7 @@ export default function BookingDetailDrawer({
   }
 
   async function handleSaveEdit() {
-    if (!editForm) return;
+    if (!editForm || !booking) return;
     if (!editForm.guest_name.trim()) { setEditErr('Guest name is required.'); return; }
     if (editForm.check_out <= editForm.check_in) { setEditErr('Check-out must be after check-in.'); return; }
     if (!editForm.nightly_rate || editForm.nightly_rate <= 0) { setEditErr('Valid nightly rate required.'); return; }
@@ -169,6 +172,8 @@ export default function BookingDetailDrawer({
   }
 
   async function handleDelete() {
+    if (!booking) return;
+    if (!window.confirm('Are you sure? This will permanently remove the booking and all associated records.')) return;
     setWorking(true);
     try {
       await onDeleteBooking(booking.id);
@@ -186,7 +191,7 @@ export default function BookingDetailDrawer({
     <>
       {open && <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />}
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 overflow-y-auto flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
           open ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'
         }`}
       >
@@ -465,8 +470,9 @@ export default function BookingDetailDrawer({
           )}
         </div>
 
+        {/* FOOTER — fixed. In edit mode show discard/save; otherwise show booking totals only */}
         {!deleteMode && (
-          <div className="px-6 py-4 border-t border-slate-100 space-y-3">
+          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50">
             {editing ? (
               <div className="flex gap-3">
                 <button
@@ -485,32 +491,11 @@ export default function BookingDetailDrawer({
                   {working ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
-            ) : !cancelMode && booking.status === 'confirmed' && (
-              <>
-                <button
-                  onClick={startEditing}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-700"
-                >
-                  <Pencil className="w-4 h-4" />
-                  Edit
-                </button>
-                <button
-                  onClick={() => setCancelMode(true)}
-                  className="w-full py-2.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors font-medium"
-                >
-                  Cancel Booking
-                </button>
-                <div className="border-t border-slate-100 pt-3">
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Danger zone</p>
-                  <button
-                    onClick={() => setDeleteMode(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete record
-                  </button>
-                </div>
-              </>
+            ) : (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-500">{nights} nights total</span>
+                <span className="font-semibold text-slate-800">{formatUGX(total)}</span>
+              </div>
             )}
           </div>
         )}
@@ -518,3 +503,5 @@ export default function BookingDetailDrawer({
     </>
   );
 }
+
+// Add native confirm to deletion

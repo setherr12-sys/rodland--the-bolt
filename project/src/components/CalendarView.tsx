@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval,
@@ -87,29 +87,34 @@ function renderDayCell(
   roomColors: Record<number, string>,
   onViewBooking: (b: Booking) => void,
 ) {
-  const maxLane = Math.max(0, ...weekLanes.map(a => a.laneIndex));
-
+  // Always render 8 lanes (0..7) so stacking is stable across weeks
   return (
     <div className="flex flex-col gap-0.5 pt-1">
-      {Array.from({ length: maxLane + 1 }, (_, lane) => {
+      {Array.from({ length: 8 }, (_, lane) => {
         const assignment = weekLanes.find(a => a.laneIndex === lane);
-        if (!assignment) return <div key={lane} className="h-6" />;
+        if (!assignment) return <div key={lane} className="h-4" />;
 
         const role = assignment.role[dayIndex];
-        if (role === 'empty') return <div key={lane} className="h-6" />;
+        if (role === 'empty') return <div key={lane} className="h-4" />;
 
         const color = roomColors[assignment.booking.room_id];
         const showLabel = role === 'start' || role === 'solo';
 
-        const borderRadius = {
-          solo: 'rounded',
-          start: 'rounded-l rounded-r-none',
-          mid: 'rounded-none',
-          end: 'rounded-r rounded-l-none',
-        }[role];
+        const continuesFromLeft = role === 'mid' || role === 'end';
+        const continuesRight = role === 'mid' || role === 'start';
 
-        const marginLeft = role === 'mid' || role === 'end' ? '-ml-px' : '';
-        const marginRight = role === 'mid' || role === 'start' ? '-mr-px' : '';
+        const borderRadiusClass = continuesFromLeft && continuesRight
+          ? 'rounded-none'
+          : continuesFromLeft
+          ? 'rounded-r rounded-l-none'
+          : continuesRight
+          ? 'rounded-l rounded-r-none'
+          : 'rounded';
+
+        const style: Record<string, string | number> = {
+          marginLeft: continuesFromLeft ? '-1px' : '0',
+          marginRight: continuesRight ? '-1px' : '0',
+        };
 
         return (
           <button
@@ -117,9 +122,8 @@ function renderDayCell(
             type="button"
             onClick={() => onViewBooking(assignment.booking)}
             title={`${assignment.booking.guest_name} – ${assignment.booking.room?.name ?? ''}`}
-            className={`h-6 flex items-center px-1.5 text-white text-xs font-medium cursor-pointer
-              ${color} ${borderRadius} ${marginLeft} ${marginRight}
-              overflow-hidden whitespace-nowrap hover:opacity-90 transition-opacity`}
+            className={`h-4 flex items-center px-1.5 text-white text-xs font-medium cursor-pointer overflow-hidden whitespace-nowrap hover:opacity-90 transition-opacity ${color} ${borderRadiusClass}`}
+            style={{ ...style, fontSize: '10px', lineHeight: '16px' }}
           >
             {showLabel ? assignment.booking.guest_name.split(' ')[0] : ''}
           </button>
@@ -140,6 +144,10 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
 
   const weeks: Date[][] = [];
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+
+  const weeksWithLanes = useMemo(() => {
+    return weeks.map(weekDays => ({ weekDays, weekLanes: buildWeekLanes(weekDays, bookings) }));
+  }, [bookings, monthDate, rooms]);
 
   const timelineDays = eachDayOfInterval(monthStart, new Date(monthEnd.getTime() - 86400000));
 
@@ -198,8 +206,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
           ))}
         </div>
         <div>
-          {weeks.map((weekDays, weekIdx) => {
-            const weekLanes = buildWeekLanes(weekDays, bookings);
+          {weeksWithLanes.map(({ weekDays, weekLanes }, weekIdx) => {
             return (
               <div key={weekIdx} className="grid grid-cols-7 border-b border-slate-50 last:border-0">
                 {weekDays.map((day, dayIdx) => {
@@ -207,7 +214,8 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`min-h-[80px] border-t border-slate-100 p-1 border-r border-slate-50 last:border-r-0 ${!inMonth ? 'bg-slate-50/60' : ''}`}
+                      className={`border-t border-slate-100 p-1 border-r border-slate-50 last:border-r-0 ${!inMonth ? 'bg-slate-50/60' : ''}`}
+                      style={{ minHeight: '164px' }}
                     >
                       <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full
                         ${isToday(day) ? 'bg-amber-500 text-white' : inMonth ? 'text-slate-600' : 'text-slate-300'}`}
@@ -234,7 +242,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
           <h3 className="font-semibold text-slate-700 text-sm">Room Timeline — {formatDate(monthDate, 'MMMM yyyy')}</h3>
         </div>
         <div className="overflow-x-auto">
-          <div style={{ minWidth: `${totalDays * 30 + 140}px` }}>
+          <div style={{ minWidth: `${totalDays * 30 + 140}px`, paddingRight: '16px' }}>
             <div className="flex border-b border-slate-100">
               <div className="w-28 shrink-0 px-4 py-2 text-xs font-medium text-slate-500">Room</div>
               <div className="flex-1 flex">
@@ -276,7 +284,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                       const { startIdx, spanDays } = getBookingSpan(b);
                       if (spanDays <= 0) return null;
                       const leftPct = (startIdx / totalDays) * 100;
-                      const widthPct = (spanDays / totalDays) * 100;
+                      const widthPct = Math.max((spanDays / totalDays) * 100, 1);
                       return (
                         <button
                           key={b.id}
@@ -286,7 +294,7 @@ export default function CalendarView({ rooms, bookings, onViewBooking, onNewBook
                           className={`absolute top-1 flex items-center px-2 rounded text-white text-xs font-medium overflow-hidden hover:opacity-80 transition-opacity ${getRoomColor(b.room_id)}`}
                           style={{ left: `${leftPct}%`, width: `${widthPct}%`, height: ROW_H }}
                         >
-                          <span className="truncate">{b.guest_name}</span>
+                          <span className="truncate">{spanDays >= 3 ? b.guest_name : ''}</span>
                         </button>
                       );
                     })}

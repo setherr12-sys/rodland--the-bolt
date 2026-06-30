@@ -227,7 +227,7 @@ export default function RoomsView({ rooms, bookings, onStatusChange, onNewBookin
 
   const filtered = filterStatus === 'all' ? rooms : rooms.filter(r => r.status === filterStatus);
   const activeBooking = selected ? getActiveBooking(selected.id) : null;
-  const upcomingBooking = selected ? getUpcomingBooking(selected.id) : null;
+  const upcomingBooking = selected ? getUpcomingBooking(selected.id) : undefined;
   const roomBookings = selected ? getRoomBookings(selected.id) : [];
 
   async function handleStatusChange(newStatus: RoomStatus) {
