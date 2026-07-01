@@ -1,8 +1,17 @@
-import { supabase } from './supabase';
+import { supabase, getSupabaseError } from './supabase';
 import type { Room, Booking, RoomStatus, BookingStatus, PaymentStatus } from './types';
 
+function getClient() {
+  if (!supabase) {
+    const message = getSupabaseError()?.message ?? 'Supabase client is unavailable. Check your environment variables.';
+    throw new Error(message);
+  }
+  return supabase;
+}
+
 async function hasBookingConflict(roomId: number, checkIn: string, checkOut: string, excludeId?: number): Promise<boolean> {
-  let query = supabase
+  const client = getClient();
+  let query = client
     .from('bookings')
     .select('id')
     .eq('room_id', roomId)
@@ -21,7 +30,8 @@ async function hasBookingConflict(roomId: number, checkIn: string, checkOut: str
 }
 
 export async function loadRooms(): Promise<Room[]> {
-  const { data, error } = await supabase
+  const client = getClient();
+  const { data, error } = await client
     .from('rooms')
     .select('*')
     .order('sort_order');
@@ -30,7 +40,8 @@ export async function loadRooms(): Promise<Room[]> {
 }
 
 export async function loadBookings(): Promise<Booking[]> {
-  const { data, error } = await supabase
+  const client = getClient();
+  const { data, error } = await client
     .from('bookings')
     .select('*, room:rooms(*)')
     .in('status', ['confirmed', 'extended'])
@@ -40,7 +51,8 @@ export async function loadBookings(): Promise<Booking[]> {
 }
 
 export async function loadAllBookings(): Promise<Booking[]> {
-  const { data, error } = await supabase
+  const client = getClient();
+  const { data, error } = await client
     .from('bookings')
     .select('*, room:rooms(*)')
     .order('check_in');
@@ -54,13 +66,14 @@ export async function updateRoomStatus(
   oldStatus: RoomStatus,
   note?: string
 ): Promise<void> {
-  const { error: updateError } = await supabase
+  const client = getClient();
+  const { error: updateError } = await client
     .from('rooms')
     .update({ status: newStatus })
     .eq('id', roomId);
   if (updateError) throw updateError;
 
-  const { error: logError } = await supabase
+  const { error: logError } = await client
     .from('room_status_log')
     .insert({ room_id: roomId, old_status: oldStatus, new_status: newStatus, note: note ?? null });
   if (logError) throw logError;
@@ -78,12 +91,13 @@ export interface BookingInput {
 }
 
 export async function createBooking(input: BookingInput): Promise<Booking> {
+  const client = getClient();
   const hasConflict = await hasBookingConflict(input.room_id, input.check_in, input.check_out);
   if (hasConflict) {
     throw new Error('This room is already occupied during the selected dates.');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('bookings')
     .insert({ ...input, status: 'confirmed' })
     .select('*, room:rooms(*)')
@@ -93,7 +107,7 @@ export async function createBooking(input: BookingInput): Promise<Booking> {
   // If check-in is today, set room to occupied
   const today = new Date().toISOString().slice(0, 10);
   if (input.check_in <= today && input.check_out > today) {
-    const { data: roomData } = await supabase.from('rooms').select('status').eq('id', input.room_id).single();
+    const { data: roomData } = await client.from('rooms').select('status').eq('id', input.room_id).single();
     if (roomData) {
       await updateRoomStatus(input.room_id, 'occupied', roomData.status as RoomStatus, 'Auto-set on booking');
     }
@@ -116,12 +130,13 @@ export async function updateBooking(
     status?: BookingStatus;
   }
 ): Promise<void> {
+  const client = getClient();
   const hasConflict = await hasBookingConflict(updates.room_id, updates.check_in, updates.check_out, id);
   if (hasConflict) {
     throw new Error('Cannot update: the new dates overlap with an existing booking.');
   }
 
-  const { error } = await supabase
+  const { error } = await client
     .from('bookings')
     .update(updates)
     .eq('id', id);
@@ -129,7 +144,8 @@ export async function updateBooking(
 }
 
 export async function deleteBooking(id: number): Promise<void> {
-  const { error } = await supabase
+  const client = getClient();
+  const { error } = await client
     .from('bookings')
     .delete()
     .eq('id', id);
@@ -137,7 +153,8 @@ export async function deleteBooking(id: number): Promise<void> {
 }
 
 export async function cancelBooking(id: number, reason?: string): Promise<void> {
-  const { error } = await supabase
+  const client = getClient();
+  const { error } = await client
     .from('bookings')
     .update({
       status: 'cancelled' as BookingStatus,
@@ -149,7 +166,8 @@ export async function cancelBooking(id: number, reason?: string): Promise<void> 
 }
 
 export async function updatePaymentStatus(id: number, paymentStatus: PaymentStatus): Promise<void> {
-  const { error } = await supabase
+  const client = getClient();
+  const { error } = await client
     .from('bookings')
     .update({ payment_status: paymentStatus })
     .eq('id', id);

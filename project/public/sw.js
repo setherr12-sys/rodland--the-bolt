@@ -1,4 +1,4 @@
-const CACHE = 'rodland-v1';
+const CACHE = 'rodland-v2';
 const PRECACHE = ['/', '/index.html'];
 
 self.addEventListener('install', e => {
