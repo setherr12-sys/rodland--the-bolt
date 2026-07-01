@@ -8,37 +8,19 @@ export function formatDate(date: Date | string, fmt: string): string {
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   
-  const tokens = {
-    'EEEE': DAYS_FULL[d.getDay()],
-    'EEE': DAYS_SHORT[d.getDay()],
-    'MMMM': MONTHS_FULL[d.getMonth()],
-    'MMM': MONTHS_SHORT[d.getMonth()],
-    'MM': pad(d.getMonth() + 1),
-    'yyyy': String(d.getFullYear()),
-    'yy': String(d.getFullYear()).slice(2),
-    'dd': pad(d.getDate()),
-    'd': String(d.getDate()),
-    'HH': pad(d.getHours()),
-    'mm': pad(d.getMinutes())
-  };
-  
-  // Use placeholder strategy to avoid substring collisions
-  let result = fmt;
-  const placeholders: { [key: string]: string } = {};
-  
-  // Replace each token with a unique placeholder
-  Object.entries(tokens).forEach(([token, value], idx) => {
-    const placeholder = `__TOKEN_${idx}__`;
-    placeholders[placeholder] = value;
-    result = result.replaceAll(token, placeholder);
-  });
-  
-  // Replace placeholders with actual values
-  Object.entries(placeholders).forEach(([placeholder, value]) => {
-    result = result.replaceAll(placeholder, value);
-  });
-  
-  return result;
+  // Replace longer patterns first to avoid substring conflicts (EEEE before EEE, MM before M, etc)
+  return fmt
+    .replace('EEEE', DAYS_FULL[d.getDay()])
+    .replace('EEE',  DAYS_SHORT[d.getDay()])
+    .replace('MMMM', MONTHS_FULL[d.getMonth()])
+    .replace('MMM',  MONTHS_SHORT[d.getMonth()])
+    .replace('MM',   pad(d.getMonth() + 1))
+    .replace('yyyy', String(d.getFullYear()))
+    .replace('yy',   String(d.getFullYear()).slice(2))
+    .replace('dd',   pad(d.getDate()))
+    .replace('d',    String(d.getDate()))
+    .replace('HH',   pad(d.getHours()))
+    .replace('mm',   pad(d.getMinutes()));
 }
 
 export function addMonths(date: Date, n: number): Date {
