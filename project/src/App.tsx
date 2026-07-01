@@ -7,7 +7,6 @@ import ReportsView from './components/ReportsView';
 import QuickAddDrawer from './components/QuickAddDrawer';
 import BookingDetailDrawer from './components/BookingDetailDrawer';
 import ToastContainer from './components/ToastContainer';
-import StatusBadge from './components/StatusBadge';
 import { useAppData } from './hooks/useAppData';
 import { useToast } from './hooks/useToast';
 import type { Room, Booking, RoomStatus, PaymentStatus } from './lib/types';
@@ -16,6 +15,8 @@ import {
   createBooking,
   cancelBooking,
   updatePaymentStatus,
+  updateBooking,
+  deleteBooking,
   type BookingInput,
 } from './lib/actions';
 import { formatDate, toDateStr } from './lib/dateUtils';
@@ -62,6 +63,52 @@ export default function App() {
     addToast('Payment status updated');
     setSelectedBooking(prev => prev ? { ...prev, payment_status: status } : null);
     await refresh();
+  }, [addToast, refresh]);
+
+  const handleUpdateBooking = useCallback(async (
+    id: number,
+    updates: {
+      guest_name: string;
+      room_id: number;
+      check_in: string;
+      check_out: string;
+      nightly_rate: number;
+      source: string;
+      notes: string | null;
+      payment_status: string;
+      status?: 'confirmed' | 'cancelled' | 'extended';
+    }
+  ) => {
+    try {
+      await updateBooking(id, updates);
+      addToast('Booking updated');
+      await refresh();
+      setSelectedBooking(prev => {
+        if (!prev || prev.id !== id) return prev;
+        const room = rooms.find(r => r.id === updates.room_id);
+        return {
+          ...prev,
+          ...updates,
+          payment_status: updates.payment_status as PaymentStatus,
+          room: room ?? prev.room,
+        };
+      });
+    } catch (e) {
+      addToast((e as Error).message, 'error');
+      throw e;
+    }
+  }, [addToast, refresh, rooms]);
+
+  const handleDeleteBooking = useCallback(async (id: number) => {
+    try {
+      await deleteBooking(id);
+      addToast('Booking record deleted permanently', 'error');
+      setSelectedBooking(null);
+      await refresh();
+    } catch (e) {
+      addToast((e as Error).message, 'error');
+      throw e;
+    }
   }, [addToast, refresh]);
 
   const today = new Date();
@@ -169,7 +216,7 @@ export default function App() {
           {view === 'calendar' && (
             <CalendarView
               rooms={rooms}
-              bookings={bookings}
+              bookings={allBookings}
               onViewBooking={setSelectedBooking}
               onNewBooking={openNewBooking}
             />
@@ -193,9 +240,12 @@ export default function App() {
       />
       <BookingDetailDrawer
         booking={selectedBooking}
+        rooms={rooms}
         onClose={() => setSelectedBooking(null)}
         onCancel={handleCancelBooking}
         onUpdatePayment={handleUpdatePayment}
+        onUpdateBooking={handleUpdateBooking}
+        onDeleteBooking={handleDeleteBooking}
       />
 
       <ToastContainer toasts={toasts} remove={removeToast} />

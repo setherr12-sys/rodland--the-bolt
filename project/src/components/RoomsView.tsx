@@ -3,7 +3,7 @@ import { BedDouble, BedSingle, Clock, ChevronRight, Plus, Users } from 'lucide-r
 import type { Room, Booking, RoomStatus } from '../lib/types';
 import { STATUS_LABELS, STATUS_COLORS } from '../lib/types';
 import StatusBadge from './StatusBadge';
-import { formatDate, differenceInDays } from '../lib/dateUtils';
+import { formatDate, differenceInDays, formatUGX } from '../lib/dateUtils';
 
 interface Props {
   rooms: Room[];
@@ -53,7 +53,7 @@ function RoomCard({
         </div>
         <StatusBadge status={room.status} />
       </div>
-      <p className="hidden sm:block text-xs text-slate-400 mb-3">{room.room_type} · ${room.base_rate}/night</p>
+      <p className="hidden sm:block text-xs text-slate-400 mb-3">{room.room_type}</p>
       {booking ? (
         <div className="bg-blue-50 rounded-lg px-3 py-2">
           <p className="text-xs font-medium text-blue-700 truncate">{booking.guest_name}</p>
@@ -100,7 +100,7 @@ function RoomDetailPanelContent({
           <h3 className="font-semibold text-lg">{selected.name}</h3>
           <StatusBadge status={selected.status} />
         </div>
-        <p className="text-slate-400 text-sm">{selected.room_type} · ${selected.base_rate}/night</p>
+        <p className="text-slate-400 text-sm">{selected.room_type}</p>
       </div>
 
       <div className="p-5 space-y-5">
@@ -227,7 +227,7 @@ export default function RoomsView({ rooms, bookings, onStatusChange, onNewBookin
 
   const filtered = filterStatus === 'all' ? rooms : rooms.filter(r => r.status === filterStatus);
   const activeBooking = selected ? getActiveBooking(selected.id) : null;
-  const upcomingBooking = selected ? getUpcomingBooking(selected.id) : null;
+  const upcomingBooking = selected ? getUpcomingBooking(selected.id) : undefined;
   const roomBookings = selected ? getRoomBookings(selected.id) : [];
 
   async function handleStatusChange(newStatus: RoomStatus) {

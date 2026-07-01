@@ -13,7 +13,7 @@ Stores the 8 managed rooms (Room 3, 4, 31–36).
 - name: room name (e.g. "Room 3")
 - room_type: '2BR Suite' or 'Single'
 - status: one of occupied/ready/needs_cleaning/maintenance/vacant
-- base_rate: nightly rate in USD
+- base_rate: nightly rate in UGX
 - sort_order: display order
 - created_at: timestamp
 
@@ -127,14 +127,14 @@ CREATE POLICY "anon_delete_room_status_log" ON room_status_log FOR DELETE TO ano
 -- Seed rooms (only if empty)
 INSERT INTO rooms (name, room_type, base_rate, sort_order)
 SELECT * FROM (VALUES
-  ('Room 3',  '2BR Suite', 50, 1),
-  ('Room 4',  '2BR Suite', 50, 2),
-  ('Room 31', 'Single',    25, 3),
-  ('Room 32', 'Single',    25, 4),
-  ('Room 33', 'Single',    25, 5),
-  ('Room 34', 'Single',    25, 6),
-  ('Room 35', 'Single',    25, 7),
-  ('Room 36', 'Single',    25, 8)
+  ('Room 3',  '2BR Suite', 180000, 1),
+  ('Room 4',  '2BR Suite', 180000, 2),
+  ('Room 31', 'Single',    90000, 3),
+  ('Room 32', 'Single',    90000, 4),
+  ('Room 33', 'Single',    90000, 5),
+  ('Room 34', 'Single',    90000, 6),
+  ('Room 35', 'Single',    90000, 7),
+  ('Room 36', 'Single',    90000, 8)
 ) AS v(name, room_type, base_rate, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM rooms LIMIT 1);
 
@@ -150,10 +150,10 @@ SELECT
   'confirmed',
   b.payment_status
 FROM (VALUES
-  ('Room 31', 'James Otieno',  2,  7,  'Airbnb',      25, 'airbnb'),
-  ('Room 3',  'Sarah Nakato',  8,  13, 'Direct',       50, 'unpaid'),
-  ('Room 32', 'Priya Sharma',  14, 18, 'Booking.com',  25, 'partial'),
-  ('Room 4',  'David Kimani',  20, 25, 'Walk-in',      50, 'unpaid')
+  ('Room 31', 'James Otieno',  2,  7,  'Airbnb',      90000, 'airbnb'),
+  ('Room 3',  'Sarah Nakato',  8,  13, 'Direct',       180000, 'unpaid'),
+  ('Room 32', 'Priya Sharma',  14, 18, 'Booking.com',  90000, 'partial'),
+  ('Room 4',  'David Kimani',  20, 25, 'Walk-in',      180000, 'unpaid')
 ) AS b(room_name, guest_name, check_in_day, check_out_day, source, nightly_rate, payment_status)
 JOIN rooms r ON r.name = b.room_name
 WHERE NOT EXISTS (SELECT 1 FROM bookings LIMIT 1);

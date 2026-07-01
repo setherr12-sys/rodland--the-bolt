@@ -4,7 +4,7 @@ import type { Room, Booking } from '../lib/types';
 import { PAYMENT_COLORS, SOURCE_COLORS } from '../lib/types';
 import {
   formatDate, startOfMonth, endOfMonth, eachDayOfInterval,
-  differenceInDays, subMonths, addMonths, toDateStr
+  differenceInDays, subMonths, addMonths, toDateStr, formatUGX
 } from '../lib/dateUtils';
 
 interface Props {
@@ -16,7 +16,6 @@ const PIE_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#f43f5e'];
 
 function BarChart({ data, height = 140 }: { data: { day: string; revenue: number }[]; height?: number }) {
   const max = Math.max(...data.map(d => d.revenue), 1);
-  const w = 100 / data.length;
   return (
     <svg viewBox={`0 0 ${data.length * 12} ${height}`} className="w-full" preserveAspectRatio="none" style={{ height }}>
       {data.map((d, i) => {
@@ -129,6 +128,7 @@ export default function ReportsView({ rooms, allBookings }: Props) {
 
   function exportCSV() {
     const rows = [
+      ['All monetary values in this export are UGX (Ugandan Shillings)'],
       ['Guest','Room','Check-in','Check-out','Nights','Rate','Total','Source','Payment'],
       ...monthBookings.map(b => {
         const n = differenceInDays(b.check_out, b.check_in) * -1 < 0
@@ -142,16 +142,16 @@ export default function ReportsView({ rooms, allBookings }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rodland-report-${formatDate(monthDate, 'yyyy-MM')}.csv`;
+    a.download = `rodland-report-${formatDate(monthDate, 'yyyy-MM')}-UGX.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   const kpis = [
-    { label: 'Revenue',        value: `$${revenue.toLocaleString()}`, sub: formatDate(monthDate, 'MMMM yyyy'), icon: <DollarSign className="w-5 h-5" />, color: 'text-emerald-600 bg-emerald-50' },
+    { label: 'Revenue',        value: formatUGX(revenue), sub: formatDate(monthDate, 'MMMM yyyy'), icon: <DollarSign className="w-5 h-5" />, color: 'text-emerald-600 bg-emerald-50' },
     { label: 'Occupancy',      value: `${occupancy}%`,                sub: `${occupiedNights}/${totalNights} nights`, icon: <Percent className="w-5 h-5" />, color: 'text-blue-600 bg-blue-50' },
     { label: 'Bookings',       value: `${monthBookings.length}`,      sub: 'confirmed',      icon: <BedDouble className="w-5 h-5" />, color: 'text-amber-600 bg-amber-50' },
-    { label: 'Avg Daily Rate', value: `$${adr}`,                      sub: 'per occupied night', icon: <TrendingUp className="w-5 h-5" />, color: 'text-violet-600 bg-violet-50' },
+    { label: 'Avg Daily Rate', value: formatUGX(adr),                      sub: 'per occupied night', icon: <TrendingUp className="w-5 h-5" />, color: 'text-violet-600 bg-violet-50' },
   ];
 
   return (
@@ -223,7 +223,7 @@ export default function ReportsView({ rooms, allBookings }: Props) {
                     <span className="text-slate-600 text-xs font-medium w-8 text-right">{r.occupancy}%</span>
                   </div>
                 </td>
-                <td className="px-5 py-3 text-right font-semibold text-slate-800">${r.revenue}</td>
+                <td className="px-5 py-3 text-right font-semibold text-slate-800">{formatUGX(r.revenue)}</td>
               </tr>
             ))}
           </tbody>
@@ -231,7 +231,7 @@ export default function ReportsView({ rooms, allBookings }: Props) {
             <tr className="bg-slate-50 border-t border-slate-200">
               <td className="px-5 py-3 font-semibold text-slate-700">Total</td>
               <td className="px-5 py-3 text-right font-semibold text-slate-700">{occupancy}%</td>
-              <td className="px-5 py-3 text-right font-bold text-slate-800">${revenue.toLocaleString()}</td>
+              <td className="px-5 py-3 text-right font-bold text-slate-800">{formatUGX(revenue)}</td>
             </tr>
           </tfoot>
         </table>
@@ -264,7 +264,7 @@ export default function ReportsView({ rooms, allBookings }: Props) {
                     <td className="px-4 py-2.5 text-slate-600">{b.check_in}</td>
                     <td className="px-4 py-2.5 text-slate-600">{b.check_out}</td>
                     <td className={`px-4 py-2.5 font-medium text-xs ${SOURCE_COLORS[b.source] ?? 'text-slate-600'}`}>{b.source}</td>
-                    <td className="px-4 py-2.5 font-semibold text-slate-800">${n * b.nightly_rate}</td>
+                    <td className="px-4 py-2.5 font-semibold text-slate-800">{formatUGX(n * b.nightly_rate)}</td>
                     <td className="px-4 py-2.5">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${pc.bg} ${pc.text}`}>{b.payment_status}</span>
                     </td>

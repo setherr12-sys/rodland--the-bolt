@@ -1,7 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+let client: SupabaseClient | null = null;
+let startupError: Error | null = null;
 
-export const supabase = createClient<Database>(url, key);
+try {
+  const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your deployment environment.');
+  }
+
+  client = createClient(url, key);
+} catch (error) {
+  startupError = error instanceof Error ? error : new Error('Failed to initialize Supabase client.');
+  console.error(startupError.message);
+}
+
+export const supabase = client;
+
+export function getSupabaseError() {
+  return startupError;
+}

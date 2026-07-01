@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Room, PaymentStatus } from '../lib/types';
 import type { BookingInput } from '../lib/actions';
+import { formatUGX } from '../lib/dateUtils';
+import { bookingFormSchema } from '../lib/schema';
 
 interface Props {
   open: boolean;
@@ -47,7 +49,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
       setForm(f => ({
         ...f,
         room_id: roomId,
-        nightly_rate: room ? String(room.base_rate) : '',
+        nightly_rate: '',
         guest_name: '',
         notes: '',
         check_in: today(),
@@ -63,21 +65,36 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.guest_name.trim()) { setErr('Guest name is required.'); return; }
-    if (form.check_out <= form.check_in) { setErr('Check-out must be after check-in.'); return; }
-    if (!form.nightly_rate || Number(form.nightly_rate) <= 0) { setErr('Valid nightly rate required.'); return; }
-    setSaving(true);
     setErr('');
+
+    const parsed = bookingFormSchema.safeParse({
+      room_id: Number(form.room_id),
+      guest_name: form.guest_name,
+      check_in: form.check_in,
+      check_out: form.check_out,
+      source: form.source,
+      nightly_rate: Number(form.nightly_rate),
+      notes: form.notes,
+      payment_status: form.payment_status,
+    });
+
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message ?? 'Please review the booking form.';
+      setErr(message);
+      return;
+    }
+
+    setSaving(true);
     try {
       await onSave({
-        room_id: Number(form.room_id),
-        guest_name: form.guest_name.trim(),
-        check_in: form.check_in,
-        check_out: form.check_out,
-        source: form.source,
-        nightly_rate: Number(form.nightly_rate),
-        notes: form.notes.trim() || undefined,
-        payment_status: form.payment_status,
+        room_id: parsed.data.room_id,
+        guest_name: parsed.data.guest_name,
+        check_in: parsed.data.check_in,
+        check_out: parsed.data.check_out,
+        source: parsed.data.source,
+        nightly_rate: parsed.data.nightly_rate,
+        notes: parsed.data.notes || undefined,
+        payment_status: parsed.data.payment_status,
       });
       onClose();
     } catch (e) {
@@ -96,7 +113,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
     <>
       {open && <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose} />}
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 overflow-y-auto flex flex-col max-h-[calc(100vh-4rem)] md:max-h-none md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 flex flex-col max-h-[calc(100vh-4rem)] md:max-h-[calc(100vh-4rem)] md:inset-y-0 md:right-0 md:left-auto md:bottom-auto md:w-96 md:rounded-none md:translate-y-0 ${
           open ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:translate-x-full'
         }`}
       >
@@ -110,16 +127,14 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-scroll px-6 pt-5 pb-28 space-y-4">
           {/* Room */}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Room</label>
             <select
               value={form.room_id}
               onChange={e => {
-                const r = rooms.find(x => x.id === Number(e.target.value));
                 set('room_id', e.target.value);
-                if (r) set('nightly_rate', String(r.base_rate));
               }}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
@@ -166,7 +181,7 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
           {/* Rate and Source */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Nightly Rate ($)</label>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Nightly Rate (UGX)</label>
               <input
                 type="number"
                 min="1"
@@ -225,29 +240,36 @@ export default function QuickAddDrawer({ open, onClose, rooms, onSave, preselect
           {nights > 0 && (
             <div className="bg-amber-50 border border-amber-100 rounded-lg px-4 py-3">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">{nights} night{nights !== 1 ? 's' : ''} × ${Number(form.nightly_rate || 0)}</span>
-                <span className="font-semibold text-slate-800">${total}</span>
+                <span className="text-slate-600">{nights} night{nights !== 1 ? 's' : ''} × {formatUGX(Number(form.nightly_rate || 0))}</span>
+                <span className="font-semibold text-slate-800">{formatUGX(total)}</span>
               </div>
             </div>
           )}
 
           {err && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{err}</p>}
+
+          {/* Secondary action inside scrollable body */}
+          <div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full border border-slate-200 text-slate-600 rounded-lg py-2.5 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="h-4" />
         </form>
 
-        <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-          >
-            Cancel
-          </button>
+        {/* FOOTER — fixed primary action */}
+        <div className="sticky bottom-0 px-6 py-4 border-t border-slate-100 bg-white">
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="flex-1 py-2.5 text-sm font-semibold bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
+            className="w-full bg-amber-500 text-white rounded-lg py-3 font-semibold text-sm disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Create Booking'}
+            {saving ? 'Adding...' : 'Add Booking'}
           </button>
         </div>
       </div>
