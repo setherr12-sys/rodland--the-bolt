@@ -8,8 +8,6 @@ export function formatDate(date: Date | string, fmt: string): string {
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   
-  // Use placeholder strategy to avoid overlapping replacements
-  let result = fmt;
   const tokens = {
     'EEEE': DAYS_FULL[d.getDay()],
     'EEE': DAYS_SHORT[d.getDay()],
@@ -24,10 +22,23 @@ export function formatDate(date: Date | string, fmt: string): string {
     'mm': pad(d.getMinutes())
   };
   
-  // Replace longer tokens first to avoid substring conflicts
-  return Object.entries(tokens)
-    .sort((a, b) => b[0].length - a[0].length)
-    .reduce((str, [token, value]) => str.replaceAll(token, value), result);
+  // Use placeholder strategy to avoid substring collisions
+  let result = fmt;
+  const placeholders: { [key: string]: string } = {};
+  
+  // Replace each token with a unique placeholder
+  Object.entries(tokens).forEach(([token, value], idx) => {
+    const placeholder = `__TOKEN_${idx}__`;
+    placeholders[placeholder] = value;
+    result = result.replaceAll(token, placeholder);
+  });
+  
+  // Replace placeholders with actual values
+  Object.entries(placeholders).forEach(([placeholder, value]) => {
+    result = result.replaceAll(placeholder, value);
+  });
+  
+  return result;
 }
 
 export function addMonths(date: Date, n: number): Date {
