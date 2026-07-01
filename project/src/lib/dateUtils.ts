@@ -7,18 +7,27 @@ export function formatDate(date: Date | string, fmt: string): string {
   const DAYS_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  return fmt
-    .replace('EEE',  DAYS_SHORT[d.getDay()])
-    .replace('EEEE', DAYS_FULL[d.getDay()])
-    .replace('MMMM', MONTHS_FULL[d.getMonth()])
-    .replace('MMM',  MONTHS_SHORT[d.getMonth()])
-    .replace('MM',   pad(d.getMonth() + 1))
-    .replace('yyyy', String(d.getFullYear()))
-    .replace('yy',   String(d.getFullYear()).slice(2))
-    .replace('dd',   pad(d.getDate()))
-    .replace('d',    String(d.getDate()))
-    .replace('HH',   pad(d.getHours()))
-    .replace('mm',   pad(d.getMinutes()));
+  
+  // Use placeholder strategy to avoid overlapping replacements
+  let result = fmt;
+  const tokens = {
+    'EEEE': DAYS_FULL[d.getDay()],
+    'EEE': DAYS_SHORT[d.getDay()],
+    'MMMM': MONTHS_FULL[d.getMonth()],
+    'MMM': MONTHS_SHORT[d.getMonth()],
+    'MM': pad(d.getMonth() + 1),
+    'yyyy': String(d.getFullYear()),
+    'yy': String(d.getFullYear()).slice(2),
+    'dd': pad(d.getDate()),
+    'd': String(d.getDate()),
+    'HH': pad(d.getHours()),
+    'mm': pad(d.getMinutes())
+  };
+  
+  // Replace longer tokens first to avoid substring conflicts
+  return Object.entries(tokens)
+    .sort((a, b) => b[0].length - a[0].length)
+    .reduce((str, [token, value]) => str.replaceAll(token, value), result);
 }
 
 export function addMonths(date: Date, n: number): Date {
